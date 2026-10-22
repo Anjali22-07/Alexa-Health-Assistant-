@@ -38,8 +38,24 @@ public class HealthServiceImplementation implements HealthService {
 
     @Override
     public List<HealthRecordDto> getRecords(Instant from, Instant to) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getRecords'");
+        if (from != null && to != null && from.isAfter(to)) {
+        throw new IllegalArgumentException("'from' must not be after 'to'");
+    }
+
+    List<HealthRecord> records;
+    if (from != null && to != null) {
+        records = healthRepo.findByRecordedAtBetweenOrderByRecordedAtAsc(from, to);
+    } else if (from != null) {
+        records = healthRepo.findByRecordedAtGreaterThanEqualOrderByRecordedAtAsc(from);
+    } else if (to != null) {
+        records = healthRepo.findByRecordedAtLessThanEqualOrderByRecordedAtAsc(to);
+    } else {
+        records = healthRepo.findAllByOrderByRecordedAtAsc();
+    }
+
+    return records.stream()
+                   .map(record -> modelMapper.map(record, HealthRecordDto.class))
+                   .toList();
     }
 
 }

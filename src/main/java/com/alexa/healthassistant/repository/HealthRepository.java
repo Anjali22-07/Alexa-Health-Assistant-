@@ -1,5 +1,6 @@
 package com.alexa.healthassistant.repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -13,14 +14,13 @@ import com.alexa.healthassistant.entity.HealthRecord;
 @Repository 
 public interface HealthRepository extends  JpaRepository<HealthRecord, UUID>{
 
-    Optional<HealthRecord> findByRecordeType(Record record);
-     List<HealthRecord> findByTimestampBetweenOrderByTimestampAsc(
-            LocalDateTime from, LocalDateTime to);
+    Optional<HealthRecord> findByRecordType(Record record);
+    List<HealthRecord> findByRecordedAtBetweenOrderByRecordedAtAsc(Instant from, Instant to);
 
-    List<HealthRecord> findByTimestampGreaterThanEqualOrderByTimestampAsc(LocalDateTime from);
+    List<HealthRecord> findByRecordedAtGreaterThanEqualOrderByRecordedAtAsc(Instant from);
 
-    List<HealthRecord> findByTimestampLessThanEqualOrderByTimestampAsc(LocalDateTime to);
+    List<HealthRecord> findByRecordedAtLessThanEqualOrderByRecordedAtAsc(Instant to);
 
-    List<HealthRecord> findAllByOrderByTimestampAsc();
+    List<HealthRecord> findAllByOrderByRecordedAtAsc();
 
 }

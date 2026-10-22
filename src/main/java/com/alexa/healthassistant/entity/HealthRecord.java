@@ -3,6 +3,7 @@ package com.alexa.healthassistant.entity;
 import java.time.Instant;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -25,8 +26,11 @@ public class HealthRecord {
 @GeneratedValue(strategy = GenerationType.UUID)
 private UUID id;
 @Enumerated (value=EnumType.STRING)
-private RecordType recordeType;
+@Column(nullable = false)
+private RecordType recordType;
+@Column(nullable = false)
 private String content;
+@Column(nullable = false)
 private Instant recordedAt;
 private Instant createdAt=Instant.now();
 @Enumerated (value=EnumType.STRING)

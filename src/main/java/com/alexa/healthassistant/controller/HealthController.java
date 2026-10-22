@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.alexa.healthassistant.dto.HealthRecordDto;
 import com.alexa.healthassistant.service.HealthService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController 
@@ -25,7 +26,7 @@ public class HealthController {
     private final HealthService healthService;
 
    @PostMapping()
-    public ResponseEntity<HealthRecordDto> createRecord(@RequestBody  HealthRecordDto healthRecordDto){
+    public ResponseEntity<HealthRecordDto> createRecord(@Valid @RequestBody  HealthRecordDto healthRecordDto){
        return ResponseEntity.status(201).body(healthService.save(healthRecordDto));
     }
     @GetMapping()

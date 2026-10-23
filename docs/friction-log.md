@@ -22,3 +22,25 @@
 - Workaround: Renamed methods to match the entity fields
 - Suggestion: Print the final cause first in the failure analysis output
 - What worked well: The "Did you mean 'recordType'" hint pointed straight at the fix
+
+## Proxy token and the pre-filled link were confusing
+- Tool/doc: MCP Inspector (terminal output on startup)
+- Task: Open the Inspector and connect to my server
+- Steps taken: Started the Inspector, saw an auth token and an API token in the terminal, was unsure what to do with them
+- Expected: A clear instruction such as "open this link"
+- Actual: It was not obvious that the token protects the Inspector's own local proxy (not my MCP server), or that the link printed in the terminal already includes the token
+- Severity: medium
+- Time lost: 5 mins
+- Workaround: Copied the full link from the terminal into the browser
+- Suggestion: Print one plain line: "Open this link to start; the token only protects this local proxy, your server needs no token"
+
+## Session not found" after the server auto-restarted
+- Tool/doc: Spring AI MCP server (Streamable HTTP) with Spring Boot DevTools, and MCP Inspector
+- Task: Run log_health_record after editing code
+- Steps taken: Edited and saved code (DevTools restarted the app), then ran a tool from the Inspector without reconnecting
+- Expected: Either the call works, or the error says what to do
+- Actual: The tool call failed with a JSON-RPC error "Session not found: <id>" followed by a very long stack trace. Nothing said the server had restarted or that    reconnecting would fix it. The cause was that the server keeps sessions in memory and a restart clears them
+- Severity: medium
+- Time lost: 10mins
+- Workaround: Disconnect and Connect again in the Inspector after every restart
+- Suggestion: Return a clear message such as "Session expired or server restarted, reinitialize the connection", and have the Inspector offer a Reconnect button on this error. The Spring AI docs could mention the STATELESS protocol option for development

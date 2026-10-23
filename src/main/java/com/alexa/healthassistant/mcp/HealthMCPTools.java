@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import com.alexa.healthassistant.dto.HealthRecordDto;
 import com.alexa.healthassistant.entity.RecordType;
+import com.alexa.healthassistant.entity.Source;
 import com.alexa.healthassistant.service.HealthService;
 
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ public class HealthMCPTools {
             dto.setContent(content);
             dto.setRecordedAt(parseInstant(recordedAt));          // CHANGED: uses the helper
 
-            HealthRecordDto saved = healthService.save(dto);
+            HealthRecordDto saved = healthService.save(dto, Source.ALEXA);
             return "Saved " + saved.getRecordType() + ": " + saved.getContent()
                     + " at " + saved.getRecordedAt();
         } catch (IllegalArgumentException | DateTimeParseException e) {

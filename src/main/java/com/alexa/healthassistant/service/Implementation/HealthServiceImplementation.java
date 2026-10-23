@@ -23,7 +23,7 @@ public class HealthServiceImplementation implements HealthService {
 
 
     @Override
-    public HealthRecordDto save(HealthRecordDto healthDto) {
+    public HealthRecordDto save(HealthRecordDto healthDto, Source source) {
 
           System.out.println("CONTENT RECEIVED: " + healthDto.getContent());
        HealthRecord healthRecord = new HealthRecord();

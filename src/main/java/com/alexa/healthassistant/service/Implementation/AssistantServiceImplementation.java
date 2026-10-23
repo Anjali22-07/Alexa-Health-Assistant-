@@ -49,6 +49,7 @@ public class AssistantServiceImplementation implements AssistantService {
         return chatClient.prompt()
                 .system(system)
                 .user(userMessage)
+                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, "demo"))
                 .tools(mcpTools)
                 .call()
                 .content();

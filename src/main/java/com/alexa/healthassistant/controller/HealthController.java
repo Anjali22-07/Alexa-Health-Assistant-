@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alexa.healthassistant.dto.HealthRecordDto;
+import com.alexa.healthassistant.entity.Source;
 import com.alexa.healthassistant.service.HealthService;
 
 import jakarta.validation.Valid;
@@ -27,7 +28,7 @@ public class HealthController {
 
    @PostMapping()
     public ResponseEntity<HealthRecordDto> createRecord(@Valid @RequestBody  HealthRecordDto healthRecordDto){
-       return ResponseEntity.status(201).body(healthService.save(healthRecordDto));
+       return ResponseEntity.status(201).body(healthService.save(healthRecordDto, Source.WEBSITE));
     }
     @GetMapping()
     public  List<HealthRecordDto> getRecords(@RequestParam(required = false)

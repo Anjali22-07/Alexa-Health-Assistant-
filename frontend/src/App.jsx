@@ -34,69 +34,144 @@ function timeLabel(iso) {
 }
 
 function Overview({ records }) {
-  const garmin = records.filter(isGarmin).sort(byTimeDesc);
-  const latestByType = {};
-  garmin.forEach((r) => {
-    if (!latestByType[r.recordType]) latestByType[r.recordType] = r;
+ const garmin = records
+  .filter((r) =>
+    ["SLEEP", "HEART_RATE", "ACTIVITY", "CALORIES"].includes(
+      (r.recordType || "").toUpperCase()
+    )
+  )
+  .sort(byTimeDesc);
+  const reported = records.filter((r) => !isGarmin(r));
+
+  const now = Date.now();
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+  const reportedWeek = reported.filter((r) => {
+    const time = new Date(r.recordedAt).getTime();
+    return time >= weekAgo && time <= now;
   });
 
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const reported = records.filter((r) => !isGarmin(r));
-  const reportedWeek = reported.filter((r) => new Date(r.recordedAt) >= weekAgo);
-  const count = (list, word) =>
-    list.filter((r) => (r.recordType || "").toUpperCase().includes(word)).length;
+  const typeOf = (r) => (r.recordType || "").toUpperCase();
 
-  const lastSymptom = [...reported]
-    .filter((r) => (r.recordType || "").toUpperCase().includes("SYMPTOM"))
+  const latestOf = (words) =>
+    garmin.find((r) => words.some((word) => typeOf(r).includes(word)));
+
+  const sleep = latestOf(["SLEEP"]);
+  const heart = latestOf(["HEART_RATE", "HEARTRATE"]);
+  const steps = latestOf(["STEP", "ACTIVITY"]);
+  const calories = latestOf(["CALORIE"]);
+
+  const extract = (record, patterns) => {
+    if (!record) return null;
+
+    for (const pattern of patterns) {
+      const match = record.content?.match(pattern);
+      if (match) return match[1];
+    }
+
+    return null;
+  };
+
+  const sleepValue =
+  extract(sleep, [/Sleep:\s*([\d]+\s*h\s*\d+\s*m)/i]);
+
+const heartValue =
+  extract(heart, [/resting\s*([\d.]+\s*bpm)/i]);
+
+const stepsValue =
+  extract(steps, [/Steps:\s*([\d,]+)/i]);
+
+const caloriesValue =
+  extract(steps, [/([\d,]+)\s*kcal/i]);
+  const count = (list, word) =>
+    list.filter((r) => typeOf(r).includes(word)).length;
+
+  const lastSymptom = [...reportedWeek]
+    .filter((r) => typeOf(r).includes("SYMPTOM"))
     .sort(byTimeDesc)[0];
+
+  const metricCards = [
+    {
+      title: "Latest sleep",
+      value: sleepValue || (sleep ? sleep.content : "No data available"),
+      icon: "😴",
+      time: sleep?.recordedAt,
+    },
+    {
+      title: "Resting heart rate",
+      value: heartValue || (heart ? heart.content : "No data available"),
+      icon: "❤️",
+      time: heart?.recordedAt,
+    },
+    {
+      title: "Steps",
+      value: stepsValue || (steps ? steps.content : "No data available"),
+      icon: "👟",
+      time: steps?.recordedAt,
+    },
+    {
+      title: "Calories",
+      value: caloriesValue || (calories ? calories.content : "No data available"),
+      icon: "🔥",
+      time: calories?.recordedAt,
+    },
+  ];
 
   return (
     <div className="overview">
       <h3>Health overview</h3>
 
       <div className="ov-label">⌚ Latest Garmin readings</div>
+
       <div className="ov-grid">
-        {Object.values(latestByType).length === 0 && (
-          <div className="hint">No Garmin data loaded.</div>
-        )}
-        {Object.values(latestByType).map((r) => (
-          <div key={r.recordType} className="card garmin-card">
+        {metricCards.map((card) => (
+          <div className="card garmin-card" key={card.title}>
             <div className="card-title">
-              {icon(r)} {r.recordType.replaceAll("_", " ")}
+              {card.icon} {card.title}
             </div>
-            <div className="card-body">{r.content}</div>
-            <div className="card-time">
-              {dayLabel(r.recordedAt)}, {timeLabel(r.recordedAt)}
-            </div>
+
+            <div className="card-body">{card.value}</div>
+
+            {card.time && (
+              <div className="card-time">
+                {dayLabel(card.time)}, {timeLabel(card.time)}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      <div className="ov-label">🗣️ Reported by you (last 7 days)</div>
+      <div className="ov-label">
+        🗣️ Reported by you (last 7 days)
+      </div>
+
       <div className="ov-grid">
         <div className="card reported-card">
           <div className="card-title">🤒 Symptoms</div>
           <div className="card-big">{count(reportedWeek, "SYMPTOM")}</div>
         </div>
+
         <div className="card reported-card">
           <div className="card-title">💊 Medicines and supplements</div>
           <div className="card-big">
-            {count(reportedWeek, "MEDIC") + count(reportedWeek, "SUPPLEMENT")}
+            {count(reportedWeek, "MEDIC") +
+              count(reportedWeek, "SUPPLEMENT") +
+              count(reportedWeek, "VITAMIN")}
           </div>
         </div>
+
         <div className="card reported-card wide">
           <div className="card-title">Latest symptom</div>
           <div className="card-body">
             {lastSymptom
               ? `${lastSymptom.content} (${dayLabel(lastSymptom.recordedAt)}, ${timeLabel(lastSymptom.recordedAt)})`
-              : "None reported"}
+              : "None reported in the last 7 days"}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -106,13 +181,29 @@ export default function App() {
   const [filter, setFilter] = useState("ALL");
 
   async function loadRecords() {
-    try {
-      const r = await fetch("/api/V1/healthRecords");
-      if (r.ok) setRecords(await r.json());
-    } catch {
-      /* ignore for now */
+  try {
+    const r = await fetch("/api/V1/healthRecords");
+
+    if (r.ok) {
+      const data = await r.json();
+      console.log("Health records from backend:", data);
+      console.table(
+        data
+          .filter((record) => record.source === "GARMIN")
+          .map((record) => ({
+            type: record.recordType,
+            content: record.content,
+            recordedAt: record.recordedAt,
+          }))
+      );
+      setRecords(data);
+    } else {
+      console.error("Failed to load records:", r.status);
     }
+  } catch (error) {
+    console.error("Could not load health records:", error);
   }
+}
 
 
   useEffect(() => {

@@ -36,5 +36,10 @@ spring:
         api-key: ${GEMINI_API_KEY}
         chat:
             model: gemini-3.5-flash
+
+  app:
+  checkin:
+    interval-ms: 7200000
+    initial-delay-ms: 20000
     
      

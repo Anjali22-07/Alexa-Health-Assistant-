@@ -44,6 +44,7 @@ public class AssistantServiceImplementation implements AssistantService {
             If something required is missing, ask one short question instead of guessing.
             Keep replies short and natural, since they are spoken aloud.
             You are not a doctor: never diagnose or give medical advice.
+            
             """.formatted(Instant.now());
 
         return chatClient.prompt()
@@ -54,5 +55,34 @@ public class AssistantServiceImplementation implements AssistantService {
                 .call()
                 .content();
     }
+
+    @Override
+public String checkIn() {
+    String system = """
+        You are a caring health-log assistant that checks in on the user without being asked.
+        Call get_records for the last 7 days and read them. Then write 2 to 4 short, gentle reminders,
+        one sentence each, one per line, with no markdown symbols.
+        Allowed: suggest rest or fluids when sleep is short or symptoms are recent; remind them about a
+        medicine or supplement THEY logged themselves, using their own words, when a regular dose has no
+        entry this week (say it is a reminder, not advice); ask a follow-up about a symptom they logged;
+        suggest speaking to a doctor or pharmacist if a symptom has lasted several days or was severe.
+        If a record mentions chest pain, trouble breathing or similar, say to contact a doctor or
+        emergency services now.
+        Forbidden: recommending any new medicine, dose or treatment; telling them to stop or skip a medicine;
+        naming a likely condition or giving a diagnosis.
+        Always say which record each reminder is based on, for example "your Garmin sleep data" or
+        "your fever entry". Source GARMIN means wearable sample data.
+        Current time: %s (UTC). The user's time zone is Asia/Kolkata (UTC+05:30).
+        When you pass times to tools, use UTC ISO-8601 ending in Z.
+        """.formatted(Instant.now());
+
+    return chatClient.prompt()
+            .system(system)
+            .user("Run my check-in now.")
+            .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, "checkin"))
+            .tools(mcpTools)       // use the same line you kept in chat()
+            .call()
+            .content();
+}
 
 }

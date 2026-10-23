@@ -20,6 +20,29 @@ export default function App() {
     }
   }
 
+ const lastNudge = useRef(null);
+
+useEffect(() => {
+  async function poll() {
+    try {
+      const r = await fetch("/api/V1/chat/proactive");
+      if (r.status !== 200) return;
+      const n = await r.json();
+      if (n.createdAt !== lastNudge.current) {
+        lastNudge.current = n.createdAt;
+        setMessages((m) => [...m, { role: "alexa", text: "(Check-in) " + n.text }]);
+        speak(n.text);
+        loadRecords();
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  poll();
+  const id = setInterval(poll, 20000);
+  return () => clearInterval(id);
+}, []);
+   
   useEffect(() => {
     loadRecords();
   }, []);
@@ -103,10 +126,16 @@ export default function App() {
           <button onClick={() => send(input)} disabled={busy}>
             Send
           </button>
+          {/* <button onClick={checkIn}>Daily check-in</button> */}
         </div>
       </section>
 
       <section className="panel">
+         {/* {nudges && (
+      <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", background: "#fff8e1", padding: 12, borderRadius: 8 }}>
+        {nudges}
+      </pre>
+    )} */}
         <h2>Health timeline</h2>
         {sorted.length === 0 && <p className="hint">No records yet.</p>}
         <ul className="timeline">
@@ -125,6 +154,7 @@ export default function App() {
             </li>
           ))}
         </ul>
+           
       </section>
     </div>
   );

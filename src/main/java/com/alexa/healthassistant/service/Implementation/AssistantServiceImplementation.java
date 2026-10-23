@@ -19,7 +19,7 @@ public class AssistantServiceImplementation implements AssistantService {
 
     public AssistantServiceImplementation(ChatClient.Builder builder, ToolCallbackProvider mcpTools) {
        ChatMemory chatMemory = MessageWindowChatMemory.builder()
-            .maxMessages(20)
+            .maxMessages(8)
             .build();
   
         this.chatClient = builder

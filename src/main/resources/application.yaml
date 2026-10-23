@@ -1,5 +1,23 @@
 spring:
-      application:
-               name: healthassistant
-      profiles:
-           active:  dev
+  application:
+    name: healthassistant
+
+  profiles:
+    active: dev
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  web:
+    error:
+      include-message: always
+      include-stacktrace: on_param
+
+logging:
+  level:
+    org:
+      springframework:
+        web: DEBUG

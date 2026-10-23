@@ -45,12 +45,12 @@ public class GlobalExceptionHandler{
 
      }
 
-     // Anything unexpected: hide the details from the caller
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleAny(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Something went wrong"));
-    }
+    // Anything unexpected: hide the details from the caller
+    // @ExceptionHandler(Exception.class)
+    // public ResponseEntity<Map<String, String>> handleAny(Exception ex) {
+    //     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body(Map.of("error", "Something went wrong"));
+    // }
 }
 
 

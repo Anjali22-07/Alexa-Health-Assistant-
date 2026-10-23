@@ -61,8 +61,8 @@ public class HealthMCPTools {
             String to) {
 
         try {
-            Instant fromInstant = parseInstant(from);             // CHANGED: uses the helper
-            Instant toInstant = parseInstant(to);                 // CHANGED: uses the helper
+            Instant toInstant = Instant.now();
+            Instant fromInstant = toInstant.minus(java.time.Duration.ofDays(7));           // CHANGED: uses the helper
 
             List<HealthRecordDto> records = healthService.getRecords(fromInstant, toInstant);
             if (records.isEmpty()) {

@@ -37,7 +37,7 @@ spring:
         chat:
             model: gemini-3.5-flash
 
-  app:
+app:
   checkin:
     interval-ms: 7200000
     initial-delay-ms: 20000

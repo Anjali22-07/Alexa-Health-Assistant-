@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 const SpeechRecognition =
@@ -20,28 +20,28 @@ export default function App() {
     }
   }
 
- const lastNudge = useRef(null);
+//  const lastNudge = useRef(null);
 
-useEffect(() => {
-  async function poll() {
-    try {
-      const r = await fetch("/api/V1/chat/proactive");
-      if (r.status !== 200) return;
-      const n = await r.json();
-      if (n.createdAt !== lastNudge.current) {
-        lastNudge.current = n.createdAt;
-        setMessages((m) => [...m, { role: "alexa", text: "(Check-in) " + n.text }]);
-        speak(n.text);
-        loadRecords();
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  poll();
-  const id = setInterval(poll, 20000);
-  return () => clearInterval(id);
-}, []);
+// useEffect(() => {
+//   async function poll() {
+//     try {
+//       const r = await fetch("/api/V1/chat/proactive");
+//       if (r.status !== 200) return;
+//       const n = await r.json();
+//       if (n.createdAt !== lastNudge.current) {
+//         lastNudge.current = n.createdAt;
+//         setMessages((m) => [...m, { role: "alexa", text: "(Check-in) " + n.text }]);
+//         speak(n.text);
+//         loadRecords();
+//       }
+//     } catch {
+//       /* ignore */
+//     }
+//   }
+//   poll();
+//   const id = setInterval(poll, 20000);
+//   return () => clearInterval(id);
+// }, []);
    
   useEffect(() => {
     loadRecords();
@@ -53,7 +53,7 @@ useEffect(() => {
     }
   }
 
-  async function send(text) {
+  async function send(text, Source= "WEBSITE") {
     const message = text.trim();
     if (!message || busy) return;
     setMessages((m) => [...m, { role: "you", text: message }]);
@@ -89,7 +89,7 @@ useEffect(() => {
     rec.lang = "en-IN";
     rec.onstart = () => setListening(true);
     rec.onend = () => setListening(false);
-    rec.onresult = (e) => send(e.results[0][0].transcript);
+    rec.onresult = (e) => send(e.results[0][0].transcript, "ALEXA");
     rec.start();
   }
 

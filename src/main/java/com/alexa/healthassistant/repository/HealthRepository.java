@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.alexa.healthassistant.entity.HealthRecord;
+import com.alexa.healthassistant.entity.RecordType;
+import com.alexa.healthassistant.entity.Source;
 
 @Repository 
 public interface HealthRepository extends  JpaRepository<HealthRecord, UUID>{
@@ -22,5 +24,7 @@ public interface HealthRepository extends  JpaRepository<HealthRecord, UUID>{
     List<HealthRecord> findByRecordedAtLessThanEqualOrderByRecordedAtAsc(Instant to);
 
     List<HealthRecord> findAllByOrderByRecordedAtAsc();
+
+    boolean existsByRecordTypeAndSourceAndRecordedAt(RecordType recordType, Source source, Instant recordedAt);
 
 }

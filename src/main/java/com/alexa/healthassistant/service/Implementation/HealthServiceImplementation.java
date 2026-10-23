@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.alexa.healthassistant.dto.HealthRecordDto;
 import com.alexa.healthassistant.entity.HealthRecord;
+import com.alexa.healthassistant.entity.Source;
 import com.alexa.healthassistant.repository.HealthRepository;
 import com.alexa.healthassistant.service.HealthService;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,12 @@ public class HealthServiceImplementation implements HealthService {
        HealthRecord healthRecord = new HealthRecord();
        healthRecord.setRecordType(healthDto.getRecordType());
        healthRecord.setContent(healthDto.getContent());
-       healthRecord.setRecordedAt(healthDto.getRecordedAt());
-       healthRecord.setSource(healthDto.getSource());
+      if(healthDto.getRecordedAt()==null){
+        healthRecord.setRecordedAt(Instant.now());
+      } else{
+        healthRecord.setRecordedAt(healthDto.getRecordedAt());
+      }
+       healthRecord.setSource(Source.WEBSITE);
        
         HealthRecord saveHealth= healthRepo.save(healthRecord);
         return modelMapper.map(saveHealth, HealthRecordDto.class);

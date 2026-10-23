@@ -4,12 +4,106 @@ import "./App.css";
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
+  const TZ = "Asia/Kolkata";
+
+const isGarmin = (r) => r.source === "GARMIN";
+const byTimeDesc = (a, b) => new Date(b.recordedAt) - new Date(a.recordedAt);
+
+function icon(r) {
+  const t = (r.recordType || "").toUpperCase();
+  if (t.includes("SLEEP")) return "😴";
+  if (t.includes("HEART")) return "❤️";
+  if (t.includes("STEP")) return "👟";
+  if (t.includes("STRESS")) return "🧘";
+  if (t.includes("SYMPTOM")) return "🤒";
+  if (t.includes("MEDIC")) return "💊";
+  if (t.includes("SUPPLEMENT") || t.includes("VITAMIN")) return "🌿";
+  return isGarmin(r) ? "⌚" : "📝";
+}
+
+function dayLabel(iso) {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    weekday: "short", day: "numeric", month: "short", timeZone: TZ,
+  });
+}
+
+function timeLabel(iso) {
+  return new Date(iso).toLocaleTimeString("en-IN", {
+    hour: "2-digit", minute: "2-digit", timeZone: TZ,
+  });
+}
+
+function Overview({ records }) {
+  const garmin = records.filter(isGarmin).sort(byTimeDesc);
+  const latestByType = {};
+  garmin.forEach((r) => {
+    if (!latestByType[r.recordType]) latestByType[r.recordType] = r;
+  });
+
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const reported = records.filter((r) => !isGarmin(r));
+  const reportedWeek = reported.filter((r) => new Date(r.recordedAt) >= weekAgo);
+  const count = (list, word) =>
+    list.filter((r) => (r.recordType || "").toUpperCase().includes(word)).length;
+
+  const lastSymptom = [...reported]
+    .filter((r) => (r.recordType || "").toUpperCase().includes("SYMPTOM"))
+    .sort(byTimeDesc)[0];
+
+  return (
+    <div className="overview">
+      <h3>Health overview</h3>
+
+      <div className="ov-label">⌚ Latest Garmin readings</div>
+      <div className="ov-grid">
+        {Object.values(latestByType).length === 0 && (
+          <div className="hint">No Garmin data loaded.</div>
+        )}
+        {Object.values(latestByType).map((r) => (
+          <div key={r.recordType} className="card garmin-card">
+            <div className="card-title">
+              {icon(r)} {r.recordType.replaceAll("_", " ")}
+            </div>
+            <div className="card-body">{r.content}</div>
+            <div className="card-time">
+              {dayLabel(r.recordedAt)}, {timeLabel(r.recordedAt)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="ov-label">🗣️ Reported by you (last 7 days)</div>
+      <div className="ov-grid">
+        <div className="card reported-card">
+          <div className="card-title">🤒 Symptoms</div>
+          <div className="card-big">{count(reportedWeek, "SYMPTOM")}</div>
+        </div>
+        <div className="card reported-card">
+          <div className="card-title">💊 Medicines and supplements</div>
+          <div className="card-big">
+            {count(reportedWeek, "MEDIC") + count(reportedWeek, "SUPPLEMENT")}
+          </div>
+        </div>
+        <div className="card reported-card wide">
+          <div className="card-title">Latest symptom</div>
+          <div className="card-body">
+            {lastSymptom
+              ? `${lastSymptom.content} (${dayLabel(lastSymptom.recordedAt)}, ${timeLabel(lastSymptom.recordedAt)})`
+              : "None reported"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [records, setRecords] = useState([]);
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
+  const [filter, setFilter] = useState("ALL");
 
   async function loadRecords() {
     try {
@@ -20,29 +114,7 @@ export default function App() {
     }
   }
 
-//  const lastNudge = useRef(null);
 
-// useEffect(() => {
-//   async function poll() {
-//     try {
-//       const r = await fetch("/api/V1/chat/proactive");
-//       if (r.status !== 200) return;
-//       const n = await r.json();
-//       if (n.createdAt !== lastNudge.current) {
-//         lastNudge.current = n.createdAt;
-//         setMessages((m) => [...m, { role: "alexa", text: "(Check-in) " + n.text }]);
-//         speak(n.text);
-//         loadRecords();
-//       }
-//     } catch {
-//       /* ignore */
-//     }
-//   }
-//   poll();
-//   const id = setInterval(poll, 20000);
-//   return () => clearInterval(id);
-// }, []);
-   
   useEffect(() => {
     loadRecords();
   }, []);
@@ -93,9 +165,19 @@ export default function App() {
     rec.start();
   }
 
-  const sorted = [...records].sort(
-    (a, b) => new Date(b.recordedAt) - new Date(a.recordedAt)
-  );
+  const visible = records
+  .filter((r) =>
+    filter === "ALL" ? true : filter === "GARMIN" ? isGarmin(r) : !isGarmin(r)
+  )
+  .sort(byTimeDesc);
+
+const groups = [];
+visible.forEach((r) => {
+  const day = dayLabel(r.recordedAt);
+  const last = groups[groups.length - 1];
+  if (last && last.day === day) last.items.push(r);
+  else groups.push({ day, items: [r] });
+});
 
   return (
     <div className="app">
@@ -131,31 +213,53 @@ export default function App() {
       </section>
 
       <section className="panel">
-         {/* {nudges && (
-      <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", background: "#fff8e1", padding: 12, borderRadius: 8 }}>
-        {nudges}
-      </pre>
-    )} */}
-        <h2>Health timeline</h2>
-        {sorted.length === 0 && <p className="hint">No records yet.</p>}
+  <h2>Health dashboard</h2>
+
+  <Overview records={records} />
+
+  <h3>Combined timeline</h3>
+  <div className="legend">
+    <span className="dot dot-garmin" /> Garmin measurement
+    <span className="dot dot-reported" /> Reported by you (Alexa or website)
+  </div>
+  <div className="filters">
+    {["ALL", "REPORTED", "GARMIN"].map((f) => (
+      <button
+        key={f}
+        className={filter === f ? "active" : ""}
+        onClick={() => setFilter(f)}
+      >
+        {f === "ALL" ? "All" : f === "REPORTED" ? "Reported" : "Garmin"}
+      </button>
+    ))}
+  </div>
+
+  {groups.length === 0 && <p className="hint">No records yet.</p>}
+
+  <div className="timeline-scroll">
+    {groups.map((g) => (
+      <div key={g.day}>
+        <div className="day-header">{g.day}</div>
         <ul className="timeline">
-          {sorted.map((r, i) => (
-            <li key={r.id || i}>
-              <div className="when">
-                {new Date(r.recordedAt).toLocaleString("en-IN")}
-              </div>
+          {g.items.map((r, i) => (
+            <li key={r.id || i} className={isGarmin(r) ? "row-garmin" : "row-reported"}>
+              <div className="when">{timeLabel(r.recordedAt)}</div>
               <div>
-                <span className="badge">{r.recordType}</span>{" "}
+                <span className="badge">
+                  {icon(r)} {(r.recordType || "").replaceAll("_", " ")}
+                </span>{" "}
                 {r.content}
-                {r.source && (
-                  <span className={"src " + r.source}> {r.source}</span>
-                )}
+                <span className={"src " + r.source}>
+                  {isGarmin(r) ? "⌚ Garmin" : r.source === "ALEXA" ? "🎙️ Alexa" : "🌐 Website"}
+                </span>
               </div>
             </li>
           ))}
         </ul>
-           
-      </section>
+      </div>
+    ))}
+  </div>
+</section>
     </div>
   );
 }

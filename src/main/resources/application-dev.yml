@@ -24,3 +24,17 @@ spring:
          name: health-assitant
          version: 0.1.0
          protocol: STREAMABLE
+       client:
+         initialized: false
+         streamable-http:
+            connections:
+               health-server:
+                  url: http://localhost:8080
+         
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+            model: gemini-3.5-flash
+    
+     

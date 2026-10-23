@@ -1,122 +1,131 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+export default function App() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [records, setRecords] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
+
+  async function loadRecords() {
+    try {
+      const r = await fetch("/api/V1/healthRecords");
+      if (r.ok) setRecords(await r.json());
+    } catch {
+      /* ignore for now */
+    }
+  }
+
+  useEffect(() => {
+    loadRecords();
+  }, []);
+
+  function speak(text) {
+    if ("speechSynthesis" in window && text) {
+      speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
+  }
+
+  async function send(text) {
+    const message = text.trim();
+    if (!message || busy) return;
+    setMessages((m) => [...m, { role: "you", text: message }]);
+    setInput("");
+    setBusy(true);
+    try {
+      const r = await fetch("/api/V1/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      const data = await r.json();
+      const reply = data.reply || data.error || "No reply from the server.";
+      setMessages((m) => [...m, { role: "alexa", text: reply }]);
+      speak(reply);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { role: "alexa", text: "I could not reach the server." },
+      ]);
+    } finally {
+      setBusy(false);
+      loadRecords();
+    }
+  }
+
+  function listen() {
+    if (!SpeechRecognition) {
+      alert("Voice input needs Chrome.");
+      return;
+    }
+    const rec = new SpeechRecognition();
+    rec.lang = "en-IN";
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
+    rec.onresult = (e) => send(e.results[0][0].transcript);
+    rec.start();
+  }
+
+  const sorted = [...records].sort(
+    (a, b) => new Date(b.recordedAt) - new Date(a.recordedAt)
+  );
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      <section className="panel">
+        <h2>Alexa+ Simulator</h2>
+        <p className="hint">
+          A simulated Alexa+ host. Speak or type, and the assistant saves or
+          fetches health records through the MCP server.
+        </p>
+        <div className="log">
+          {messages.map((m, i) => (
+            <div key={i} className={m.role}>
+              <strong>{m.role === "you" ? "You" : "Alexa+"}:</strong> {m.text}
+            </div>
+          ))}
+          {busy && <div className="alexa">Thinking...</div>}
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+        <div className="row">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send(input)}
+            placeholder="Type, or press the mic and speak"
+          />
+          <button onClick={listen} disabled={busy}>
+            {listening ? "Listening..." : "🎤"}
+          </button>
+          <button onClick={() => send(input)} disabled={busy}>
+            Send
+          </button>
         </div>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <section className="panel">
+        <h2>Health timeline</h2>
+        {sorted.length === 0 && <p className="hint">No records yet.</p>}
+        <ul className="timeline">
+          {sorted.map((r, i) => (
+            <li key={r.id || i}>
+              <div className="when">
+                {new Date(r.recordedAt).toLocaleString("en-IN")}
+              </div>
+              <div>
+                <span className="badge">{r.recordType}</span>{" "}
+                {r.content}
+                {r.source && (
+                  <span className={"src " + r.source}> {r.source}</span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
 }
-
-export default App
